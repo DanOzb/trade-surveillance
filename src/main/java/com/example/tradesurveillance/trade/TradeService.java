@@ -1,0 +1,50 @@
+package com.example.tradesurveillance.trade;
+
+import com.example.tradesurveillance.alert.Alert;
+import com.example.tradesurveillance.alert.AlertRepository;
+import com.example.tradesurveillance.common.TradeResponse;
+import com.example.tradesurveillance.common.AlertSummary;
+import com.example.tradesurveillance.detection.AnomalyDetector;
+import com.example.tradesurveillance.detection.PriceOutlierDetector;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class TradeService {
+    private final TradeRepository tradeRepository;
+    private final AlertRepository alertRepository;
+    private final List<AnomalyDetector> detectors = new ArrayList<>(); //For adding more later
+
+    public TradeService(TradeRepository tradeRepository, AlertRepository alertRepository) {
+        this.tradeRepository = tradeRepository;
+        this.alertRepository = alertRepository;
+        detectors.add(new PriceOutlierDetector());
+    }
+    public TradeResponse ingest(TradeRequest request) {
+        Trade trade = new Trade(
+                null,
+                request.symbol(),
+                request.price(),
+                request.volume(),
+                request.status(),
+                request.traderId(),
+                request.timestamp()
+        );
+        this.tradeRepository.save(trade);
+
+        List<Alert> triggered = new ArrayList<>();
+        for (AnomalyDetector detector : detectors) {
+            detector.detect(trade, tradeRepository).ifPresent(triggered::add);
+        }
+
+        alertRepository.saveAll(triggered);
+
+        List<AlertSummary> summaries = triggered.stream()
+                .map(a -> new AlertSummary(a.getRuleName(), a.getSeverity(), a.getReason()))
+                .toList();
+
+        return new TradeResponse(trade.getId(), summaries);
+    }
+}
