@@ -5,11 +5,13 @@ import com.example.tradesurveillance.alert.AlertSeverity;
 import com.example.tradesurveillance.trade.Trade;
 import com.example.tradesurveillance.trade.TradeRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+@Component
 public class PriceOutlierDetector implements AnomalyDetector{
 
     private static final int WINDOW_SIZE = 100;

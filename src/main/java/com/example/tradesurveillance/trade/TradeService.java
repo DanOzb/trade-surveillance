@@ -15,12 +15,15 @@ import java.util.List;
 public class TradeService {
     private final TradeRepository tradeRepository;
     private final AlertRepository alertRepository;
-    private final List<AnomalyDetector> detectors = new ArrayList<>(); //For adding more later
+    private final List<AnomalyDetector> detectors;
 
-    public TradeService(TradeRepository tradeRepository, AlertRepository alertRepository) {
+    public TradeService(
+            TradeRepository tradeRepository,
+            AlertRepository alertRepository,
+            List<AnomalyDetector> detectors) {
         this.tradeRepository = tradeRepository;
         this.alertRepository = alertRepository;
-        detectors.add(new PriceOutlierDetector());
+        this.detectors = detectors;
     }
     public TradeResponse ingest(TradeRequest request) {
         Trade trade = new Trade(
