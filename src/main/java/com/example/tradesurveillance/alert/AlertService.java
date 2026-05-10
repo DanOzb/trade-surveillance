@@ -1,7 +1,9 @@
 package com.example.tradesurveillance.alert;
 
 import com.example.tradesurveillance.common.AlertSummary;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -14,12 +16,12 @@ public class AlertService {
     }
 
     public AlertSummary findById(Long id) {
-        Alert alert = alertRepository.findById(id).orElse(null);
-        assert alert != null;
-        return new AlertSummary(
-                alert.getRuleName(),
-                alert.getSeverity(),
-                alert.getReason());
+        Alert alert = alertRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Alert with id " + id + " not found."
+                ));
+        return toSummary(alert);
     }
 
     public List<AlertSummary> findAll() {
