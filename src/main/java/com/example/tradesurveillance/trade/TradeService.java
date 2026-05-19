@@ -35,13 +35,13 @@ public class TradeService {
                 request.traderId(),
                 request.timestamp()
         );
-        this.tradeRepository.save(trade);
 
         List<Alert> triggered = new ArrayList<>();
         for (AnomalyDetector detector : detectors) {
             detector.detect(trade, tradeRepository).ifPresent(triggered::add);
         }
 
+        this.tradeRepository.save(trade);
         alertRepository.saveAll(triggered);
 
         List<AlertSummary> summaries = triggered.stream()

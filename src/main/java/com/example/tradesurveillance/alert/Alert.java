@@ -14,7 +14,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class Alert {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
