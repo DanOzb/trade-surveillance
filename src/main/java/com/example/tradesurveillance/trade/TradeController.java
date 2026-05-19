@@ -1,6 +1,8 @@
 package com.example.tradesurveillance.trade;
 
 import com.example.tradesurveillance.common.TradeResponse;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,8 +20,8 @@ public class TradeController {
     }
 
     @PostMapping
-    public ResponseEntity<TradeResponse> ingest(@RequestBody TradeRequest request) {
+    public ResponseEntity<TradeResponse> ingest(@RequestBody @Valid TradeRequest request) {
         var alerts = tradeService.ingest(request);
-        return ResponseEntity.status(201).body(alerts);
+        return ResponseEntity.status(HttpStatus.CREATED).body(alerts);
     }
 }
