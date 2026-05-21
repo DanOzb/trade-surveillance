@@ -16,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,7 +45,7 @@ public class PipelineIntegrationTest {
     }
 
     @Test
-    void should_produce_one_alert() throws Exception {
+    void postTrade_outlierAfterNormalHistory_producesOneAlert() throws Exception {
         String symbol = "ACME";
         Instant base = Instant.parse("2026-01-15T09:00:00Z");
 
@@ -75,6 +76,29 @@ public class PipelineIntegrationTest {
         assert(alert.get("ruleName").asText().equals("PriceOutlierDetector"));
         assert (alert.get("severity").asText().equals("WARNING"));
         assert (alert.get("reason").asText().contains("3.0"));
+    }
+
+    @Test
+    void postTrade_normalTradeAfterNormalHistory_producesNoAlerts() throws Exception {
+        String symbol = "ACME";
+        Instant base = Instant.parse("2026-01-15T09:00:00Z");
+
+        for (int i = 0; i < 25; i++) {
+            BigDecimal price = (i % 2 == 0)
+                    ? new BigDecimal("99.50")
+                    : new BigDecimal("100.50");
+            postTrade(symbol, price, base.plusSeconds(i));
+        }
+
+        postTrade(symbol, new BigDecimal("100.00"), base.plusSeconds(100));
+
+        MvcResult listResult = mockMvc.perform(get("/alerts"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode alerts = objectMapper.readTree(listResult.getResponse().getContentAsString());
+        assertThat(alerts.isArray()).isTrue();
+        assertThat(alerts.size()).isZero();
     }
 
     private MvcResult postTrade(String symbol, BigDecimal price, Instant timestamp) throws Exception {

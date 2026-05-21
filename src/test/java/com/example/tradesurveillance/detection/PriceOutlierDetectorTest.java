@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -38,18 +39,18 @@ class PriceOutlierDetectorTest {
     }
 
     @Test
-    void fewer_than_20_trades(){
+    void detect_fewerThanMinSamples_returnsEmpty(){
         List<Trade> history = buildHistory();
         when(tradeRepository.findBySymbolOrderByTimestampDesc(eq(SYMBOL), any(Pageable.class)))
                 .thenReturn(history);
 
         Trade incoming = buildTrade(1L, 500.0); // wildly out of band, but ignored
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
-        assert(result).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void no_outlier_trades(){
+    void detect_priceWithinThreshold_returnsEmpty(){
         List<Trade> history = new ArrayList<>();
         for (int i = 0; i < 30; i++) {
             history.add(buildTrade((long) i, i % 2 == 0 ? 99.5 : 100.5));
@@ -59,11 +60,11 @@ class PriceOutlierDetectorTest {
 
         Trade incoming = buildTrade(99L, 100.0);
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
-        assert(result).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void clear_outlier_trade() {
+    void detect_priceWellAboveThreshold_returnsAlert() {
         List<Trade> history = new ArrayList<>();
         for (int i = 0; i < 30; i++) {
             history.add(buildTrade((long) i, i % 2 == 0 ? 99.0 : 101.0));
@@ -79,17 +80,17 @@ class PriceOutlierDetectorTest {
 
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
 
-        assert(result).isPresent();
+        assertThat(result).isPresent();
         Alert alert = result.get();
-        assert(alert.getRuleName().equals("PriceOutlierDetector"));
-        assert (alert.getSeverity().equals(AlertSeverity.WARNING));
-        assert (alert.getTradeId().equals(42L));
-        assert (alert.getTimestamp().equals(ts));
-        assert (alert.getReason().contains("3.0"));
+        assertThat(alert.getRuleName().equals("PriceOutlierDetector"));
+        assertThat (alert.getSeverity().equals(AlertSeverity.WARNING));
+        assertThat (alert.getTradeId().equals(42L));
+        assertThat (alert.getTimestamp().equals(ts));
+        assertThat (alert.getReason().contains("3.0"));
     }
 
     @Test
-    void outlier_just_above_threshold() {
+    void detect_priceJustAboveThreshold_returnsAlert() {
         BoundaryHistory h = buildBoundaryHistory();
         when(tradeRepository.findBySymbolOrderByTimestampDesc(eq(SYMBOL), any(Pageable.class)))
                 .thenReturn(h.trades);
@@ -99,12 +100,12 @@ class PriceOutlierDetectorTest {
 
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
 
-        assert (result).isPresent();
-        assert (result.get().getRuleName().equals("PriceOutlierDetector"));
+        assertThat (result).isPresent();
+        assertThat (result.get().getRuleName().equals("PriceOutlierDetector"));
     }
 
     @Test
-    void trade_within_threshold() {
+    void detect_priceJustBelowThreshold_returnsEmpty() {
         BoundaryHistory h = buildBoundaryHistory();
         when(tradeRepository.findBySymbolOrderByTimestampDesc(eq(SYMBOL), any(Pageable.class)))
                 .thenReturn(h.trades);
@@ -114,11 +115,11 @@ class PriceOutlierDetectorTest {
 
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
 
-        assert(result).isEmpty();
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void outlier_under_threshold() {
+    void detect_priceWellBelowMean_returnsAlert() {
         List<Trade> history = new ArrayList<>();
         for (int i = 0; i < 30; i++) {
             history.add(buildTrade((long) i, i % 2 == 0 ? 99.0 : 101.0));
@@ -130,8 +131,24 @@ class PriceOutlierDetectorTest {
 
         Optional<Alert> result = detector.detect(incoming, tradeRepository);
 
-        assert(result).isPresent();
-        assert(result.get().getSeverity().equals(AlertSeverity.WARNING));
+        assertThat(result).isPresent();
+        assertThat(result.get().getSeverity().equals(AlertSeverity.WARNING));
+    }
+
+    @Test
+    void detect_zeroStandardDeviation_returnsEmpty() {
+        List<Trade> history = new ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            history.add(buildTrade((long) i, 100.0));
+        }
+        when(tradeRepository.findBySymbolOrderByTimestampDesc(eq(SYMBOL), any(Pageable.class)))
+                .thenReturn(history);
+
+        Trade incoming = buildTrade(99L, 500.0);
+
+        Optional<Alert> result = detector.detect(incoming, tradeRepository);
+
+        assertThat(result).isEmpty();
     }
 
 
