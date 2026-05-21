@@ -20,8 +20,9 @@ public class PriceOutlierDetector implements AnomalyDetector{
 
     @Override
     public Optional<Alert> detect(Trade trade, TradeRepository history) {
-        List<Trade> recent = history.findBySymbolOrderByTimestampDesc(
+        List<Trade> recent = history.findBySymbolAndIdNotOrderByTimestampDesc(
                 trade.getSymbol(),
+                trade.getId(),
                 PageRequest.of(0, WINDOW_SIZE)
         );
 
@@ -38,6 +39,10 @@ public class PriceOutlierDetector implements AnomalyDetector{
                 .map(p -> (p - mean) * (p - mean))
                 .sum() / (prices.length - 1);
         double stdDev = Math.sqrt(variance);
+
+        if (stdDev == 0) {
+            return Optional.empty();
+        }
 
         double z = (trade.getPrice().doubleValue() - mean) / stdDev;
 
