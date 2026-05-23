@@ -25,6 +25,15 @@ public class TradeService {
         this.alertRepository = alertRepository;
         this.detectors = detectors;
     }
+
+    /**
+     *
+     * ingests trade, saves it, evaluates it with detectors and returns a response.
+     *
+     * @param  request request to be saved as {@link Trade} and evaluated.
+     * @return a {@link TradeResponse} with a list of {@link AlertSummary}
+     * for every detector that triggered an alert. Empty if none.
+     */
     public TradeResponse ingest(TradeRequest request) {
         Trade trade = new Trade(
                 null,

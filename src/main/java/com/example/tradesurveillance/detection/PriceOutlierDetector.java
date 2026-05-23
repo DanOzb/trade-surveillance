@@ -11,15 +11,31 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+
+
 @Component
 public class PriceOutlierDetector implements AnomalyDetector{
-
+    //can be changed, just update the tests.
     private static final int WINDOW_SIZE = 100;
+
+    //Less can become too noisy.
     private static final int MIN_SAMPLES = 20;
+
+    //flags around the 99.7% percentile which is standard outlier cutoff.
     private static final double Z_THRESHOLD = 3.0;
+
+    /**
+     *
+     * detects trades as anomalies if above Z_THRESHOLD.
+     *
+     * @param trade           trade to be evaluated. Already saved.
+     * @param history         repository to look up past trades.
+     * @return                an {@link Alert} if the rule fires, otherwise {@link Optional#empty()}
+     */
 
     @Override
     public Optional<Alert> detect(Trade trade, TradeRepository history) {
+        //Query excludes current trade via id.
         List<Trade> recent = history.findBySymbolAndIdNotOrderByTimestampDesc(
                 trade.getSymbol(),
                 trade.getId(),
@@ -41,6 +57,9 @@ public class PriceOutlierDetector implements AnomalyDetector{
         double stdDev = Math.sqrt(variance);
 
         if (stdDev == 0) {
+            //stdDev returns as normal trade for now.
+            //Could be changed to anomaly since 0
+            //stdDev could be argued as anomalous.
             return Optional.empty();
         }
 
