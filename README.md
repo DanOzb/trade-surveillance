@@ -31,6 +31,8 @@ The app starts on `http://localhost:8080`. The database is recreated on each sta
 
 ## API
 
+**[Live API documentation](https://danozb.github.io/trade-surveillance/)**
+
 ### `POST /trades`
 
 Ingest a trade. Returns `201 Created` with the saved trade ID and any alerts triggered by detectors.
